@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  mod:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +31,30 @@ jobs:
             build/libs/*.jar
             !build/libs/*-dev.jar
             !build/libs/*-sources.jar
+
+  exe:
+    needs: mod
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: MevdZClient
+          path: jar
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: EXE derle
+        shell: pwsh
+        run: |
+          pip install pyinstaller minecraft-launcher-lib
+          Copy-Item launcher/MevdZ_Launcher.pyw launcher/MevdZ_Launcher.py
+          pyinstaller --onefile --noconsole --name MevdZ-Launcher --collect-all minecraft_launcher_lib --add-data "jar;mod" launcher/MevdZ_Launcher.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MevdZ-Launcher-EXE
+          path: dist/MevdZ-Launcher.exe
