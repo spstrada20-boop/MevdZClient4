@@ -1,0 +1,10 @@
+[
+  {
+    "modid": "mevdzclient",
+    "name": "MevdZ Client",
+    "description": "MevdZ Launcher icin HUD, otomatik kosu ve animasyonlu menu.",
+    "version": "1.0",
+    "mcversion": "1.8.9",
+    "authorList": ["MevdZ"]
+  }
+]
