@@ -12,6 +12,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderLivingEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -157,6 +158,110 @@ public class ExtraModule {
         GlStateManager.enableLighting();
         GlStateManager.disableBlend();
         GlStateManager.color(1f, 1f, 1f, 1f);
+    }
+
+    // ================================================================ crosshair
+    @SubscribeEvent
+    public void onCrosshair(RenderGameOverlayEvent.Pre e) {
+        if (e.type != RenderGameOverlayEvent.ElementType.CROSSHAIRS || !Features.CH_ON.value) return;
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.gameSettings.showDebugInfo) return; // F3 açıkken vanilla eksenleri göstersin
+        e.setCanceled(true);
+        drawCrosshair((float) Math.floor(e.resolution.getScaledWidth() / 2f),
+                (float) Math.floor(e.resolution.getScaledHeight() / 2f), e.resolution.getScaleFactor());
+    }
+
+    private static void rect(float x1, float y1, float x2, float y2, int argb) {
+        Fx.color(argb);
+        GL11.glBegin(GL11.GL_QUADS);
+        GL11.glVertex2f(x1, y2);
+        GL11.glVertex2f(x2, y2);
+        GL11.glVertex2f(x2, y1);
+        GL11.glVertex2f(x1, y1);
+        GL11.glEnd();
+    }
+
+    /** Kenar (siyah) açıksa önce biraz büyük siyah, sonra renkli dikdörtgen çizer. */
+    private static void box(float x1, float y1, float x2, float y2, int col, int a, boolean outline) {
+        if (outline) rect(x1 - 0.5f, y1 - 0.5f, x2 + 0.5f, y2 + 0.5f, a << 24);
+        rect(x1, y1, x2, y2, col);
+    }
+
+    private static void drawCrosshair(float cx, float cy, int sf) {
+        int style = Math.round(Features.CH_STYLE.value);
+        float size = Features.CH_SIZE.value, gap = Features.CH_GAP.value, th = Features.CH_THICK.value;
+        float h = th / 2f;
+        int a = Math.round(Features.CH_ALPHA.value * 255f);
+        int rgb;
+        if (Features.CH_CHROMA.value) {
+            rgb = Ui.hsb((System.currentTimeMillis() % 3000L) / 3000f, 0.7f, 1f);
+        } else {
+            rgb = (Math.round(Features.CH_R.value) << 16) | (Math.round(Features.CH_G.value) << 8)
+                    | Math.round(Features.CH_B.value);
+        }
+        int col = (a << 24) | rgb;
+        boolean ol = Features.CH_OUTLINE.value;
+
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.disableTexture2D();
+
+        if (style == 0 || style == 5) {
+            box(cx - h, cy - gap - size, cx + h, cy - gap, col, a, ol);
+            box(cx - h, cy + gap, cx + h, cy + gap + size, col, a, ol);
+            box(cx - gap - size, cy - h, cx - gap, cy + h, col, a, ol);
+            box(cx + gap, cy - h, cx + gap + size, cy + h, col, a, ol);
+        }
+        if (style == 1 || style == 5) {
+            float d = style == 1 ? Math.max(h, size / 4f) : Math.max(h, 0.5f);
+            box(cx - d, cy - d, cx + d, cy + d, col, a, ol);
+        }
+        if (style == 3) {
+            float r = size / 2f + gap / 2f;
+            box(cx - r, cy - r, cx + r, cy - r + th, col, a, ol);
+            box(cx - r, cy + r - th, cx + r, cy + r, col, a, ol);
+            box(cx - r, cy - r + th, cx - r + th, cy + r - th, col, a, ol);
+            box(cx + r - th, cy - r + th, cx + r, cy + r - th, col, a, ol);
+        }
+        if (style == 2) {
+            float r = Math.max(2f, size / 2f + gap / 2f);
+            if (ol) ringLoop(cx, cy, r, th + 1f, sf, a << 24);
+            ringLoop(cx, cy, r, th, sf, col);
+        }
+        if (style == 4) {
+            float in = gap, out = gap + size * 0.7f;
+            if (ol) diagonals(cx, cy, in, out, th + 1f, sf, a << 24);
+            diagonals(cx, cy, in, out, th, sf, col);
+        }
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+        GL11.glLineWidth(1f);
+        GlStateManager.color(1f, 1f, 1f, 1f);
+    }
+
+    private static void ringLoop(float cx, float cy, float r, float w, int sf, int argb) {
+        Fx.color(argb);
+        GL11.glLineWidth(Math.max(1f, w * sf));
+        GL11.glBegin(GL11.GL_LINE_LOOP);
+        for (int i = 0; i < 40; i++) {
+            double ang = i * 2.0 * Math.PI / 40;
+            GL11.glVertex2f((float) (cx + Math.cos(ang) * r), (float) (cy + Math.sin(ang) * r));
+        }
+        GL11.glEnd();
+    }
+
+    private static void diagonals(float cx, float cy, float in, float out, float w, int sf, int argb) {
+        Fx.color(argb);
+        GL11.glLineWidth(Math.max(1f, w * sf));
+        GL11.glBegin(GL11.GL_LINES);
+        for (int sx = -1; sx <= 1; sx += 2) {
+            for (int sy = -1; sy <= 1; sy += 2) {
+                GL11.glVertex2f(cx + sx * in, cy + sy * in);
+                GL11.glVertex2f(cx + sx * out, cy + sy * out);
+            }
+        }
+        GL11.glEnd();
     }
 
     // ================================================================ nametag

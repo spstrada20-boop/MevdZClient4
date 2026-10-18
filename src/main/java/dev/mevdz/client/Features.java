@@ -59,6 +59,8 @@ public class Features {
         public final float min, max, step, def;
         public final String unit;
         public final int fill;
+        /** Doluysa değer sayı yerine bu isimlerden biri olarak gösterilir (seçenek listesi). */
+        public String[] names;
 
         Num(String key, String label, float min, float max, float step, float def, String unit, int fill) {
             super(key, label);
@@ -85,6 +87,10 @@ public class Features {
         }
 
         public String text() {
+            if (names != null) {
+                int i = Math.max(0, Math.min(names.length - 1, Math.round(value)));
+                return names[i];
+            }
             if (step >= 1f) return Math.round(value) + unit;
             return (Math.round(value * 100f) / 100f) + unit;
         }
@@ -133,6 +139,13 @@ public class Features {
     private static Num num(String key, String label, float min, float max, float step, float def,
                            String unit, int fill) {
         Num n = new Num(key, label, min, max, step, def, unit, fill);
+        cur.list.add(n);
+        return n;
+    }
+
+    private static Num numNames(String key, String label, String[] names, int def, int fill) {
+        Num n = new Num(key, label, 0f, names.length - 1, 1f, def, "", fill);
+        n.names = names;
         cur.list.add(n);
         return n;
     }
@@ -202,6 +215,21 @@ public class Features {
     public static final Bool COMBO_HIDE0 = bool("combo.hide0", "Sıfırken gizle", true);
     public static final Bool COMBO_BEST = bool("combo.best", "En iyi combo'yu göster", false);
     public static final Num COMBO_TIMEOUT = num("combo.timeout", "Sıfırlanma süresi", 1f, 5f, 0.5f, 2f, "sn", 0x19C3FF);
+
+    // 9) Crosshair
+    private static final Category C_CROSS = cat("Crosshair");
+    public static final Bool CH_ON = bool("crosshair.on", "Özel crosshair", false);
+    public static final Num CH_STYLE = numNames("crosshair.style", "Şekil",
+            new String[]{"Artı", "Nokta", "Daire", "Kare", "Çarpı", "Artı + Nokta"}, 0, 0x7C5CFF);
+    public static final Num CH_SIZE = num("crosshair.size", "Boyut", 1f, 20f, 1f, 6f, "", 0x19C3FF);
+    public static final Num CH_GAP = num("crosshair.gap", "Boşluk", 0f, 10f, 1f, 2f, "", 0x19C3FF);
+    public static final Num CH_THICK = num("crosshair.thick", "Kalınlık", 0.5f, 4f, 0.5f, 1f, "", 0x7C5CFF);
+    public static final Bool CH_OUTLINE = bool("crosshair.outline", "Siyah kenar", true);
+    public static final Bool CH_CHROMA = bool("crosshair.chroma", "Gökkuşağı (chroma)", false);
+    public static final Num CH_R = num("crosshair.r", "Kırmızı", 0f, 255f, 1f, 255f, "", 0xFF4D4D);
+    public static final Num CH_G = num("crosshair.g", "Yeşil", 0f, 255f, 1f, 255f, "", 0x4DFF6A);
+    public static final Num CH_B = num("crosshair.b", "Mavi", 0f, 255f, 1f, 255f, "", 0x4D8DFF);
+    public static final Num CH_ALPHA = num("crosshair.alpha", "Opaklık", 0.1f, 1f, 0.05f, 1f, "", 0x7C5CFF);
 
     // ------------------------------------------------------------ kaydet / yükle
     private static File file() {

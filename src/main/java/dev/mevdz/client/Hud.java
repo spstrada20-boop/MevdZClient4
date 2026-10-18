@@ -129,15 +129,9 @@ public class Hud {
         GlStateManager.scale(el.scale, el.scale, 1f);
 
         if (el.id.equals("keys")) {
-            lw = 64;
-            lh = 60;
-            GameSettings gs = mc.gameSettings;
-            drawKey(fr, "W", 22, 0, 20, 20, gs.keyBindForward.isKeyDown(), col, el.background);
-            drawKey(fr, "A", 0, 22, 20, 20, gs.keyBindLeft.isKeyDown(), col, el.background);
-            drawKey(fr, "S", 22, 22, 20, 20, gs.keyBindBack.isKeyDown(), col, el.background);
-            drawKey(fr, "D", 44, 22, 20, 20, gs.keyBindRight.isKeyDown(), col, el.background);
-            drawKey(fr, "LMB", 0, 44, 31, 16, Mouse.isButtonDown(0), col, el.background);
-            drawKey(fr, "RMB", 33, 44, 31, 16, Mouse.isButtonDown(1), col, el.background);
+            lw = 76;
+            lh = 92;
+            drawKeystrokes(mc, fr, col, el.background);
         } else {
             String text = textFor(mc, el);
             lw = fr.getStringWidth(text) + 9;
@@ -152,6 +146,56 @@ public class Hud {
         GlStateManager.popMatrix();
         el.boxW = Math.round(lw * el.scale);
         el.boxH = Math.round(lh * el.scale);
+    }
+
+    // ---------------------------------------------------------- keystrokes (büyük kareli tasarım)
+    private static final float[] KEY_ANIM = new float[7];
+
+    private static void drawKeystrokes(Minecraft mc, FontRenderer fr, int col, boolean bg) {
+        GameSettings gs = mc.gameSettings;
+        boolean[] down = {
+                gs.keyBindForward.isKeyDown(), gs.keyBindLeft.isKeyDown(), gs.keyBindBack.isKeyDown(),
+                gs.keyBindRight.isKeyDown(), Mouse.isButtonDown(0), Mouse.isButtonDown(1),
+                gs.keyBindJump.isKeyDown()};
+        for (int i = 0; i < KEY_ANIM.length; i++) {
+            KEY_ANIM[i] += ((down[i] ? 1f : 0f) - KEY_ANIM[i]) * 0.35f;
+        }
+        keyBox(fr, "W", 26, 0, 24, 24, KEY_ANIM[0], col, bg, 1.4f, null);
+        keyBox(fr, "A", 0, 26, 24, 24, KEY_ANIM[1], col, bg, 1.4f, null);
+        keyBox(fr, "S", 26, 26, 24, 24, KEY_ANIM[2], col, bg, 1.4f, null);
+        keyBox(fr, "D", 52, 26, 24, 24, KEY_ANIM[3], col, bg, 1.4f, null);
+        keyBox(fr, "LMB", 0, 52, 37, 24, KEY_ANIM[4], col, bg, 1.1f, cps(LEFT) + " CPS");
+        keyBox(fr, "RMB", 39, 52, 37, 24, KEY_ANIM[5], col, bg, 1.1f, cps(RIGHT) + " CPS");
+        keyBox(fr, null, 0, 78, 76, 14, KEY_ANIM[6], col, bg, 1f, null);
+    }
+
+    /** label == null: boşluk (space) tuşu, ortasında çizgi. sub != null: etiketin altına küçük yazı. */
+    private static void keyBox(FontRenderer fr, String label, int x, int y, int w, int h, float a,
+                               int col, boolean bg, float scale, String sub) {
+        int alpha = bg ? 0xB0 : (int) (0xA0 * a);
+        int fill = Ui.lerp(0x5C5C5C, 0xF0F0F0, a);
+        Gui.drawRect(x, y, x + w, y + h, (alpha << 24) | fill);
+        int tc = 0xFF000000 | Ui.lerp(col, 0x101010, a);
+
+        if (label == null) {
+            Gui.drawRect(x + w / 2 - 9, y + h / 2 - 1, x + w / 2 + 9, y + h / 2 + 1, tc);
+            return;
+        }
+        int tw = fr.getStringWidth(label);
+        GlStateManager.pushMatrix();
+        GlStateManager.translate(x + w / 2f, sub == null ? y + h / 2f - 4f * scale : y + 4f, 0f);
+        GlStateManager.scale(scale, scale, 1f);
+        fr.drawStringWithShadow(label, -tw / 2f, 0f, tc);
+        GlStateManager.popMatrix();
+
+        if (sub != null) {
+            int sw = fr.getStringWidth(sub);
+            GlStateManager.pushMatrix();
+            GlStateManager.translate(x + w / 2f, y + h - 11f, 0f);
+            GlStateManager.scale(0.75f, 0.75f, 1f);
+            fr.drawStringWithShadow(sub, -sw / 2f, 0f, tc);
+            GlStateManager.popMatrix();
+        }
     }
 
     private static void drawKey(FontRenderer fr, String label, int x, int y, int w, int h,

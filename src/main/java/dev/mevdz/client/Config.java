@@ -21,7 +21,7 @@ public class Config {
         ELEMENTS.add(new HudElement("cps", "CPS", 4, 36, true));
         ELEMENTS.add(new HudElement("sprint", "KOŞU", 4, 52, false));
         ELEMENTS.add(new HudElement("keys", "TUŞ", 4, 70, true));
-        ELEMENTS.add(new HudElement("combo", "COMBO", 4, 134, true));
+        ELEMENTS.add(new HudElement("combo", "COMBO", 4, 166, true));
     }
 
     public static class HudElement {
